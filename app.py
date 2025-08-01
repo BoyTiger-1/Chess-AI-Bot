@@ -12,7 +12,7 @@ def build_move_database():
         with open('move_db.pkl', 'rb') as f:
             return pickle.load(f)
     
-    df = pd.read_csv('games.csv')
+    df = pd.read_csv('games.csv.gz')
     move_db = {}
     
     for _, row in df.iterrows():
