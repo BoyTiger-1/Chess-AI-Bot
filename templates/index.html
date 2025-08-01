@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chess AI</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chess.js@0.10.3/chess.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <style>
+        body { font-family: sans-serif; max-width: 500px; margin: 0 auto; }
+        #board { margin: 20px auto; }
+        .controls { text-align: center; margin: 20px; }
+        button { padding: 10px 20px; font-size: 16px; margin: 0 10px; }
+    </style>
+</head>
+<body>
+    <h1>Chess AI (Dataset-Powered)</h1>
+    <div id="board"></div>
+    <div class="controls">
+        <button id="reset">New Game</button>
+        <button id="undo">Undo</button>
+        <div id="status"></div>
+    </div>
+
+    <script>
+        const board = Chessboard('board', 'start');
+        const game = new Chess();
+        let moveHistory = [];
+
+        function updateStatus() {
+            let status = '';
+            if (game.isCheckmate()) status = 'Checkmate';
+            else if (game.isDraw()) status = 'Draw';
+            else {
+                status = game.turn() === 'w' ? 'Your turn' : 'AI thinking...';
+                if (game.inCheck()) status += ' (Check)';
+            }
+            $('#status').text(status);
+        }
+
+        function makeAIMove() {
+            $.post('/move', JSON.stringify({ fen: game.fen() }), {
+                contentType: 'application/json'
+            }, (data) => {
+                game.move(data.move);
+                board.position(game.fen());
+                updateStatus();
+            });
+        }
+
+        function onDragStart(source, piece) {
+            return !game.game_over() && piece.startsWith('w') && game.turn() === 'w';
+        }
+
+        function onDrop(source, target) {
+            const move = game.move({
+                from: source,
+                to: target,
+                promotion: 'q'
+            });
+            
+            if (move === null) return 'snapback';
+            
+            moveHistory.push(game.fen());
+            board.position(game.fen());
+            updateStatus();
+            
+            if (!game.game_over()) {
+                setTimeout(makeAIMove, 500);
+            }
+        }
+
+        $('#reset').click(() => {
+            game.reset();
+            board.start();
+            moveHistory = [];
+            updateStatus();
+        });
+
+        $('#undo').click(() => {
+            if (moveHistory.length > 1) {
+                moveHistory.pop();  // Remove current
+                game.load(moveHistory.pop() || chess.STARTING_FEN);
+                board.position(game.fen());
+                updateStatus();
+            }
+        });
+
+        board.onDragStart = onDragStart;
+        board.onDrop = onDrop;
+        updateStatus();
+    </script>
+</body>
+</html>
