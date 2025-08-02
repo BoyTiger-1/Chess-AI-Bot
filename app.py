@@ -6,6 +6,10 @@ from flask import Flask, request, render_template, jsonify
 
 app = Flask(__name__)
 
+@app.route("/")
+def home():
+    return render_template("index.html")
+
 # Dataset processing
 def build_move_database():
     if os.path.exists('move_db.pkl'):
@@ -80,4 +84,4 @@ def move():
     return jsonify({'move': move})
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 8000)))
