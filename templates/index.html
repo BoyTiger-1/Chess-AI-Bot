@@ -8,9 +8,14 @@
     <script src="https://cdn.jsdelivr.net/npm/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
     <style>
         body { font-family: sans-serif; max-width: 500px; margin: 0 auto; }
-        #board { margin: 20px auto; }
+        #board { 
+            margin: 20px auto; 
+            width: 400px;
+            z-index: 0;
+        }
         .controls { text-align: center; margin: 20px; }
         button { padding: 10px 20px; font-size: 16px; margin: 0 10px; }
+        #status { min-height: 24px; margin: 10px; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -23,74 +28,146 @@
     </div>
 
     <script>
-        const board = Chessboard('board', {
-          position: 'start',
-          pieceTheme: '/chess-pieces/{piece}.png'
-        });
+        // Initialize chess.js game
         const game = new Chess();
         let moveHistory = [];
+        
+        // Initialize chessboard with proper settings
+        const board = Chessboard('board', {
+            position: 'start',
+            pieceTheme: '/chess-pieces/{piece}.png',
+            draggable: true,
+            appearSpeed: 100,
+            moveSpeed: 200,
+            onDragStart: onDragStart,
+            onDrop: onDrop,
+            snapbackSpeed: 100,
+            snapSpeed: 50
+        });
 
+        // Update game status display
         function updateStatus() {
             let status = '';
-            if (game.isCheckmate()) status = 'Checkmate';
-            else if (game.isDraw()) status = 'Draw';
+            if (game.isCheckmate()) {
+                status = 'Checkmate - ' + (game.turn() === 'w' ? 'Black wins!' : 'White wins!');
+            } 
+            else if (game.isDraw()) {
+                status = 'Draw - ' + (
+                    game.isThreefoldRepetition() ? 'Threefold repetition' :
+                    game.isStalemate() ? 'Stalemate' :
+                    game.isInsufficientMaterial() ? 'Insufficient material' :
+                    '50-move rule'
+                );
+            }
             else {
-                status = game.turn() === 'w' ? 'Your turn' : 'AI thinking...';
-                if (game.inCheck()) status += ' (Check)';
+                status = game.turn() === 'w' ? 'Your turn (White)' : 'AI thinking (Black)...';
+                if (game.inCheck()) status += ' (Check!)';
             }
             $('#status').text(status);
         }
 
-        function makeAIMove() {
-            $.post('/move', JSON.stringify({ fen: game.fen() }), {
-                contentType: 'application/json'
-            }, (data) => {
-                game.move(data.move);
-                board.position(game.fen());
-                updateStatus();
-            });
+        // Validate piece movement
+        function onDragStart(source, piece, position, orientation) {
+            // Only allow player (white) to move during their turn
+            if (game.game_over() || 
+                !piece.startsWith('w') || 
+                game.turn() !== 'w') {
+                return false;
+            }
+            
+            // Highlight legal moves (optional visual feedback)
+            highlightLegalMoves(source);
+            return true;
         }
 
-        function onDragStart(source, piece) {
-            return !game.game_over() && piece.startsWith('w') && game.turn() === 'w';
-        }
-
+        // Handle piece drops
         function onDrop(source, target) {
+            // Remove any move highlights
+            removeHighlights();
+            
+            // Try to make the move
             const move = game.move({
                 from: source,
                 to: target,
-                promotion: 'q'
+                promotion: 'q' // Auto-queen on promotion
             });
             
-            if (move === null) return 'snapback';
+            // Illegal move
+            if (move === null) {
+                return 'snapback';
+            }
             
+            // Legal move - update game state
             moveHistory.push(game.fen());
             board.position(game.fen());
             updateStatus();
             
+            // AI move if game continues
             if (!game.game_over()) {
                 setTimeout(makeAIMove, 500);
             }
+            
+            return true;
         }
 
+        // AI move logic
+        function makeAIMove() {
+            // Simple AI: random legal move
+            const moves = game.moves({verbose: true});
+            if (moves.length > 0) {
+                const move = moves[Math.floor(Math.random() * moves.length)];
+                game.move(move);
+                board.position(game.fen());
+                moveHistory.push(game.fen());
+                updateStatus();
+            }
+        }
+
+        // Highlight legal moves (visual feedback)
+        function highlightLegalMoves(source) {
+            const moves = game.moves({
+                square: source,
+                verbose: true
+            });
+            
+            moves.forEach(move => {
+                $(`#board .square-${move.to}`).addClass('highlight');
+            });
+            
+            // Add CSS for highlights
+            $('<style>').text(`
+                .highlight {
+                    background-color: rgba(0, 255, 0, 0.4) !important;
+                }
+            `).appendTo('head');
+        }
+
+        // Remove move highlights
+        function removeHighlights() {
+            $('.highlight').removeClass('highlight');
+        }
+
+        // Reset game
         $('#reset').click(() => {
             game.reset();
-            board.start();
+            board.position('start');
             moveHistory = [];
+            removeHighlights();
             updateStatus();
         });
 
+        // Undo move
         $('#undo').click(() => {
             if (moveHistory.length > 1) {
-                moveHistory.pop();  // Remove current
-                game.load(moveHistory.pop() || chess.STARTING_FEN);
-                board.position(game.fen());
+                moveHistory.pop(); // Remove current state
+                const prevState = moveHistory.pop() || 'start';
+                game.load(prevState);
+                board.position(prevState);
                 updateStatus();
             }
         });
 
-        board.onDragStart = onDragStart;
-        board.onDrop = onDrop;
+        // Initialize game
         updateStatus();
     </script>
 </body>
