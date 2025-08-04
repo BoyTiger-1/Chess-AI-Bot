@@ -4,7 +4,7 @@ import pickle
 import os
 from flask import Flask, request, render_template, jsonify
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='chess-pieces')
 
 @app.route("/")
 def home():
