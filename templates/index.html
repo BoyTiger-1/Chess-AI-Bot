@@ -25,7 +25,7 @@
     <script>
         const board = Chessboard('board', {
           position: 'start',
-          pieceTheme: 'https://cdn.jsdelivr.net/npm/chessboardjs@1.0.0/website/img/chesspieces/wikipedia/{piece}.png'
+          pieceTheme: '/chess-pieces/{piece}.png'
         });
         const game = new Chess();
         let moveHistory = [];
