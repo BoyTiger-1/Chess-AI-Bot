@@ -76,8 +76,9 @@
         // Game state variables
         const game = new Chess();
         let moveHistory = [];
-        let playerColor = 'w'; // Default to white
+        let playerColor = 'w';
         let board;
+        let isAIMoving = false;
         
         // DOM elements
         const colorSelection = $('#color-selection');
@@ -103,6 +104,7 @@
                 moveSpeed: 200,
                 onDragStart: onDragStart,
                 onDrop: onDrop,
+                onSnapEnd: onSnapEnd,
                 snapbackSpeed: 100,
                 snapSpeed: 50,
                 orientation: color === 'w' ? 'white' : 'black'
@@ -114,6 +116,19 @@
             
             // If player chose black, let AI make first move
             if (playerColor === 'b') {
+                isAIMoving = true;
+                setTimeout(makeAIMove, 500);
+            }
+        }
+        
+        // Handle piece unselection after move
+        function onSnapEnd() {
+            // Update the board position
+            board.position(game.fen());
+            
+            // If it's AI's turn and not already moving, trigger AI move
+            if (!isAIMoving && !game.game_over() && game.turn() !== playerColor) {
+                isAIMoving = true;
                 setTimeout(makeAIMove, 500);
             }
         }
@@ -146,6 +161,9 @@
         
         // Validate piece movement
         function onDragStart(source, piece, position, orientation) {
+            // Don't allow dragging when AI is moving
+            if (isAIMoving) return false;
+            
             // Only allow player to move their pieces during their turn
             if (game.game_over() || 
                 !piece.startsWith(playerColor) || 
@@ -177,51 +195,40 @@
             
             // Legal move - update game state
             moveHistory.push(game.fen());
-            board.position(game.fen());
             updateStatus();
             
-            // AI move if game continues and it's AI's turn
-            if (!game.game_over() && game.turn() !== playerColor) {
-                setTimeout(makeAIMove, 500);
-            }
-            
+            // Return true to accept the move
+            // The actual position update will happen in onSnapEnd
             return true;
         }
         
-        // AI move logic (improved with basic piece values)
+        // AI move logic
         function makeAIMove() {
+            if (game.game_over()) {
+                isAIMoving = false;
+                return;
+            }
+            
             const moves = game.moves({verbose: true});
-            if (moves.length === 0) return;
+            if (moves.length === 0) {
+                isAIMoving = false;
+                return;
+            }
             
             // Simple evaluation function
             const evaluateMove = (move) => {
                 let score = 0;
-                
-                // Piece values
                 const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 0 };
                 
-                // Capture opponent pieces
-                if (move.captured) {
-                    score += pieceValues[move.captured] * 10;
-                }
-                
-                // Promote pawns
-                if (move.promotion) {
-                    score += pieceValues[move.promotion] * 5;
-                }
-                
-                // Check
-                if (move.san.includes('+')) {
-                    score += 2;
-                }
-                
-                // Randomness to make less predictable
+                if (move.captured) score += pieceValues[move.captured] * 10;
+                if (move.promotion) score += pieceValues[move.promotion] * 5;
+                if (move.san.includes('+')) score += 2;
                 score += Math.random();
                 
                 return score;
             };
             
-            // Find best move based on simple evaluation
+            // Find best move
             let bestMove = moves[0];
             let bestScore = evaluateMove(moves[0]);
             
@@ -235,9 +242,14 @@
             
             // Make the move
             game.move(bestMove);
-            board.position(game.fen());
             moveHistory.push(game.fen());
+            
+            // Update board and status
+            board.position(game.fen());
             updateStatus();
+            
+            // AI move complete
+            isAIMoving = false;
         }
         
         // Highlight legal moves
@@ -264,11 +276,12 @@
             if (board) {
                 board.destroy();
             }
+            isAIMoving = false;
         });
         
         // Undo move
         $('#undo').click(() => {
-            if (moveHistory.length > 1) {
+            if (moveHistory.length > 1 && !isAIMoving) {
                 moveHistory.pop(); // Remove current state
                 const prevState = moveHistory.pop() || 'start';
                 game.load(prevState);
