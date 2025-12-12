@@ -2,3 +2,6 @@ flask
 pandas
 chess
 gunicorn
+
+# AI Business Assistant foundation (FastAPI microservices skeleton)
+-r ai_business_assistant/requirements.txt
