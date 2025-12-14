@@ -2,13 +2,10 @@ import chess
 import pandas as pd
 import pickle
 import os
+import random
 from flask import Flask, request, render_template, jsonify
 
 app = Flask(__name__, static_folder='chess-pieces')
-
-@app.route("/")
-def home():
-    return render_template("index.html")
 
 # Dataset processing
 def build_move_database():
