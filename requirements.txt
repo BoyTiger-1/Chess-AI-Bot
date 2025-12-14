@@ -2,3 +2,10 @@ flask
 pandas
 chess
 gunicorn
+
+# ETL / data platform (core)
+requests
+tenacity
+sqlalchemy
+duckdb
+pytest
