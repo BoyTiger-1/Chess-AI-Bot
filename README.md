@@ -1,8 +1,6 @@
-# Chess-AI-Bot
+# Business AI Assistant
 
-This repo started as a simple Flask chess bot.
-
-It now also includes a lightweight **AI Business Assistant – Data Pipelines & ETL** framework under `ai_business_assistant/`.
+A lightweight **AI Business Assistant – Data Pipelines & ETL** framework.
 
 - Orchestration: Prefect (optional import) with plain-Python fallback
 - Connectors: APIs, databases (SQLAlchemy), CSV/JSON uploads
