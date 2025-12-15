@@ -2,6 +2,7 @@ flask
 pandas
 chess
 gunicorn
+psutil
 
 # ETL / data platform (core)
 requests
