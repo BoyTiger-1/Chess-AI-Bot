@@ -206,7 +206,14 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Chess AI specific
+# Business AI specific
 *.pkl
 *.csv
 /data/
+
+# Frontend (React/Vite)
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.vite/
+/frontend/.storybook-static/
+/frontend/coverage/
