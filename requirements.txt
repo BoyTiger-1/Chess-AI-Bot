@@ -36,3 +36,6 @@ joblib>=1.3.0
 cloudpickle>=2.2.0
 pyyaml>=6.0
 gunicorn
+
+# AI Business Assistant foundation (FastAPI microservices skeleton)
+-r ai_business_assistant/requirements.txt
