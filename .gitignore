@@ -210,3 +210,10 @@ __marimo__/
 *.pkl
 *.csv
 /data/
+
+# Frontend (React/Vite)
+/frontend/node_modules/
+/frontend/dist/
+/frontend/.vite/
+/frontend/.storybook-static/
+/frontend/coverage/
