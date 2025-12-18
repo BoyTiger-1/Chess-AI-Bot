@@ -11,3 +11,9 @@ celery==5.4.0
 pyjwt==2.10.1
 prometheus-client==0.21.1
 qdrant-client==1.12.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.9
+strawberry-graphql[fastapi]==0.219.0
+pandas>=2.0.0
+openpyxl>=3.1.0

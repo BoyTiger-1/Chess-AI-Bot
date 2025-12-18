@@ -1,51 +1,41 @@
-from __future__ import annotations
+"""
+Centralized logging configuration for the application.
+"""
 
-import json
 import logging
 import sys
-import time
-from typing import Any
+from typing import Optional
+
+from ai_business_assistant.config import get_settings
+
+settings = get_settings()
 
 
-class JsonFormatter(logging.Formatter):
-    def format(self, record: logging.LogRecord) -> str:
-        payload: dict[str, Any] = {
-            "ts": time.time(),
-            "level": record.levelname,
-            "logger": record.name,
-            "msg": record.getMessage(),
-        }
-
-        if record.exc_info:
-            payload["exc_info"] = self.formatException(record.exc_info)
-
-        for key in ("request_id", "service", "path", "method", "status_code"):
-            if hasattr(record, key):
-                payload[key] = getattr(record, key)
-
-        return json.dumps(payload, ensure_ascii=False)
-
-
-class _ServiceFilter(logging.Filter):
-    def __init__(self, service: str):
-        super().__init__()
-        self._service = service
-
-    def filter(self, record: logging.LogRecord) -> bool:
-        if not hasattr(record, "service"):
-            record.service = self._service
-        return True
+def setup_logging():
+    """Configure logging for the application."""
+    log_level = getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO)
+    
+    # Create formatter
+    formatter = logging.Formatter(
+        fmt='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Console handler
+    console_handler = logging.StreamHandler(sys.stdout)
+    console_handler.setFormatter(formatter)
+    console_handler.setLevel(log_level)
+    
+    # Configure root logger
+    root_logger = logging.getLogger()
+    root_logger.setLevel(log_level)
+    root_logger.addHandler(console_handler)
+    
+    # Reduce noise from third-party libraries
+    logging.getLogger("uvicorn.access").setLevel(logging.WARNING)
+    logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)
 
 
-def configure_logging(*, level: str = "INFO", service: str | None = None) -> None:
-    root = logging.getLogger()
-    root.setLevel(level.upper())
-
-    handler = logging.StreamHandler(sys.stdout)
-    handler.setFormatter(JsonFormatter())
-
-    if service:
-        handler.addFilter(_ServiceFilter(service))
-
-    root.handlers.clear()
-    root.addHandler(handler)
+def get_logger(name: str) -> logging.Logger:
+    """Get a logger instance for a module."""
+    return logging.getLogger(name)
