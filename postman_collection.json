@@ -1,0 +1,417 @@
+{
+  "info": {
+    "name": "Business AI Assistant API",
+    "description": "Complete API collection for Business AI Assistant",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"user@example.com\",\n  \"username\": \"testuser\",\n  \"password\": \"SecurePass123!\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "pm.collectionVariables.set(\"access_token\", jsonData.access_token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "username",
+                  "value": "user@example.com"
+                },
+                {
+                  "key": "password",
+                  "value": "SecurePass123!"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Get Current User",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/auth/me",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "auth", "me"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Market Analysis",
+      "item": [
+        {
+          "name": "Analyze Market",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"symbol\": \"AAPL\",\n  \"market\": \"stock\",\n  \"start_date\": \"2024-01-01T00:00:00Z\",\n  \"end_date\": \"2024-12-31T23:59:59Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/market/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "market", "analyze"]
+            }
+          }
+        },
+        {
+          "name": "Get Sentiment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/market/sentiment/AAPL",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "market", "sentiment", "AAPL"]
+            }
+          }
+        },
+        {
+          "name": "Get Market Trends",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/market/trends?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "market", "trends"],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Forecasting",
+      "item": [
+        {
+          "name": "Create Forecast",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metric\": \"revenue\",\n  \"periods\": 12,\n  \"model_type\": \"prophet\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/forecasts/create",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "forecasts", "create"]
+            }
+          }
+        },
+        {
+          "name": "List Forecasts",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/forecasts/?limit=20&offset=0",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "forecasts", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "20"
+                },
+                {
+                  "key": "offset",
+                  "value": "0"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Competitive Intelligence",
+      "item": [
+        {
+          "name": "Add Competitor",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Competitor Inc\",\n  \"website\": \"https://competitor.com\",\n  \"industry\": \"Technology\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/competitors/",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "competitors", ""]
+            }
+          }
+        },
+        {
+          "name": "Analyze Competitor",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/competitors/1/analysis",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "competitors", "1", "analysis"]
+            }
+          }
+        },
+        {
+          "name": "Get Competitive Matrix",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/competitors/matrix",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "competitors", "matrix"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Customer Analytics",
+      "item": [
+        {
+          "name": "Get Customer Segments",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customers/segments",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "customers", "segments"]
+            }
+          }
+        },
+        {
+          "name": "Predict Churn",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customers/1/churn",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "customers", "1", "churn"]
+            }
+          }
+        },
+        {
+          "name": "Calculate LTV",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/customers/1/ltv",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "customers", "1", "ltv"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Recommendations",
+      "item": [
+        {
+          "name": "Get Recommendations",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/api/v1/recommendations/?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"recommendation_id\": 1,\n  \"rating\": 5,\n  \"implemented\": true,\n  \"comments\": \"Great recommendation, very helpful!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/recommendations/feedback",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "recommendations", "feedback"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Data Management",
+      "item": [
+        {
+          "name": "Upload Data",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": []
+                },
+                {
+                  "key": "data_type",
+                  "value": "market",
+                  "type": "text"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/data/upload",
+              "host": ["{{base_url}}"],
+              "path": ["api", "v1", "data", "upload"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            }
+          }
+        },
+        {
+          "name": "Readiness Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/ready",
+              "host": ["{{base_url}}"],
+              "path": ["health", "ready"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
