@@ -1,0 +1,33 @@
+{{- if and .Values.istio.enabled .Values.services.gateway.enabled }}
+apiVersion: networking.istio.io/v1beta1
+kind: DestinationRule
+metadata:
+  name: {{ include "baa.fullname" . }}-gateway
+  labels:
+    {{- include "baa.labels" . | nindent 4 }}
+spec:
+  host: {{ include "baa.serviceName" (dict "root" . "component" "gateway") }}
+  trafficPolicy:
+    tls:
+      mode: ISTIO_MUTUAL
+---
+apiVersion: networking.istio.io/v1beta1
+kind: VirtualService
+metadata:
+  name: {{ include "baa.fullname" . }}
+  labels:
+    {{- include "baa.labels" . | nindent 4 }}
+spec:
+  gateways:
+    - {{ .Values.istio.gatewaySelector | quote }}
+  hosts:
+    {{- range .Values.ingress.hosts }}
+    - {{ .host | quote }}
+    {{- end }}
+  http:
+    - route:
+        - destination:
+            host: {{ include "baa.serviceName" (dict "root" . "component" "gateway") }}
+            port:
+              number: {{ .Values.services.gateway.service.port }}
+{{- end }}

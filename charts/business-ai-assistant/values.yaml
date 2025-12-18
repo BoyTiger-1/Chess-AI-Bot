@@ -1,0 +1,145 @@
+nameOverride: ""
+fullnameOverride: ""
+
+imagePullSecrets: []
+
+common:
+  logLevel: INFO
+
+secrets:
+  jwtSecretKey: "CHANGE_ME_CHANGE_ME_CHANGE_ME_CHANGE_ME"
+
+  postgresDsn: "postgresql+asyncpg://aba:aba@postgres:5432/aba"
+  redisUrl: "redis://redis:6379/0"
+  rabbitmqUrl: "amqp://guest:guest@rabbitmq:5672//"
+  celeryResultBackend: "redis://redis:6379/1"
+  qdrantUrl: "http://qdrant:6333"
+
+services:
+  gateway:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: business-ai-assistant
+      tag: "latest"
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+      port: 8000
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+    autoscaling:
+      hpa:
+        enabled: true
+        minReplicas: 2
+        maxReplicas: 10
+        targetCPUUtilizationPercentage: 70
+        targetMemoryUtilizationPercentage: 75
+
+  auth:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: business-ai-assistant
+      tag: "latest"
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+      port: 8001
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+
+  assistant:
+    enabled: true
+    replicaCount: 2
+    image:
+      repository: business-ai-assistant
+      tag: "latest"
+      pullPolicy: IfNotPresent
+    service:
+      type: ClusterIP
+      port: 8002
+    resources:
+      requests:
+        cpu: 200m
+        memory: 512Mi
+      limits:
+        cpu: 1500m
+        memory: 2048Mi
+
+  worker:
+    enabled: true
+    replicaCount: 1
+    image:
+      repository: business-ai-assistant
+      tag: "latest"
+      pullPolicy: IfNotPresent
+    resources:
+      requests:
+        cpu: 100m
+        memory: 256Mi
+      limits:
+        cpu: 1000m
+        memory: 1024Mi
+
+observability:
+  metrics:
+    enabled: true
+  sidecar:
+    enabled: false
+    image: fluent/fluent-bit:2.2.2
+    resources:
+      requests:
+        cpu: 50m
+        memory: 64Mi
+      limits:
+        cpu: 200m
+        memory: 256Mi
+
+ingress:
+  enabled: false
+  className: ""
+  annotations: {}
+  hosts:
+    - host: business-ai.local
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+pdb:
+  enabled: true
+  minAvailable: 1
+
+networkPolicy:
+  enabled: true
+
+vpa:
+  enabled: false
+  updateMode: Auto
+
+istio:
+  enabled: false
+  gatewaySelector: istio-system/istio-ingressgateway
+
+postgres:
+  enabled: false
+  image: pgvector/pgvector:pg16
+  storage:
+    size: 20Gi
+
+redis:
+  enabled: false
+  image: redis:7-alpine
+  storage:
+    size: 5Gi

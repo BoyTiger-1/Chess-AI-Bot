@@ -1,0 +1,43 @@
+{{- if .Values.pdb.enabled }}
+{{- if .Values.services.gateway.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "gateway") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "gateway" "root" .) | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "baa.componentLabels" (dict "component" "gateway" "root" .) | nindent 6 }}
+---
+{{- end }}
+{{- if .Values.services.auth.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "auth") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "auth" "root" .) | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "baa.componentLabels" (dict "component" "auth" "root" .) | nindent 6 }}
+---
+{{- end }}
+{{- if .Values.services.assistant.enabled }}
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "assistant") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "assistant" "root" .) | nindent 4 }}
+spec:
+  minAvailable: {{ .Values.pdb.minAvailable }}
+  selector:
+    matchLabels:
+      {{- include "baa.componentLabels" (dict "component" "assistant" "root" .) | nindent 6 }}
+{{- end }}
+{{- end }}

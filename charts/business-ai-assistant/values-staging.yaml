@@ -1,0 +1,23 @@
+common:
+  logLevel: INFO
+
+services:
+  gateway:
+    replicaCount: 2
+    autoscaling:
+      hpa:
+        enabled: true
+  auth:
+    replicaCount: 2
+  assistant:
+    replicaCount: 2
+  worker:
+    replicaCount: 1
+
+ingress:
+  enabled: true
+  hosts:
+    - host: business-ai-staging.example.com
+      paths:
+        - path: /
+          pathType: Prefix

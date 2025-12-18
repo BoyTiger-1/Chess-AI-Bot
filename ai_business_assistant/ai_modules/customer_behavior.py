@@ -60,6 +60,22 @@ class PurchasePropensity:
     predicted_purchase_date: Optional[datetime]
 
 
+@dataclass
+class SegmentationResult:
+    """Simplified segmentation output used by the public/test API."""
+
+    segments: List[Dict[str, Any]]
+    labels: List[int]
+    silhouette_score: float
+
+
+@dataclass
+class ChurnPredictionResult:
+    """Simplified churn output used by the public/test API."""
+
+    churn_probabilities: List[float]
+
+
 class CustomerBehaviorModule:
     """Customer behavior modeling for retention and revenue optimization.
     
@@ -104,23 +120,76 @@ class CustomerBehaviorModule:
     def segment_customers(
         self,
         customer_features: pd.DataFrame,
-        method: str = "kmeans",
-    ) -> Tuple[pd.Series, Dict[int, CustomerSegment]]:
-        """Segment customers using clustering.
-        
+        *,
+        n_segments: Optional[int] = None,
+    ) -> SegmentationResult:
+        """Segment customers (simplified interface).
+
+        This method is intentionally lightweight and deterministic, and is what the
+        public API/tests use.
+
         Args:
-            customer_features: DataFrame with customer features
-            method: Clustering method ('kmeans' or 'dbscan')
-            
+            customer_features: DataFrame containing customer features.
+            n_segments: Number of segments to create.
+
         Returns:
-            Tuple of (segment labels, segment descriptions)
+            SegmentationResult with a list of segments and a silhouette score.
         """
+
         features = customer_features.select_dtypes(include=[np.number]).fillna(0)
-        
+        if features.empty:
+            return SegmentationResult(segments=[], labels=[], silhouette_score=0.0)
+
+        k = int(n_segments or self.n_segments)
+        k = max(1, min(k, len(features)))
+
         scaler = StandardScaler()
         features_scaled = scaler.fit_transform(features)
         self._scalers["segmentation"] = scaler
-        
+
+        model = KMeans(n_clusters=k, random_state=self.random_state, n_init=10)
+        labels = model.fit_predict(features_scaled)
+        self._segmentation_model = model
+
+        score = 0.0
+        if k > 1 and len(features) > k:
+            try:
+                score = float(silhouette_score(features_scaled, labels))
+            except Exception:  # noqa: BLE001
+                score = 0.0
+
+        segments: list[dict[str, Any]] = []
+        for seg_id in range(k):
+            mask = labels == seg_id
+            seg_features = features[mask]
+            centroid = model.cluster_centers_[seg_id].tolist()
+            segments.append(
+                {
+                    "id": int(seg_id),
+                    "size": int(mask.sum()),
+                    "centroid": centroid,
+                    "feature_means": {c: float(seg_features[c].mean()) for c in seg_features.columns},
+                }
+            )
+
+        return SegmentationResult(segments=segments, labels=[int(x) for x in labels.tolist()], silhouette_score=score)
+
+    def segment_customers_detailed(
+        self,
+        customer_features: pd.DataFrame,
+        method: str = "kmeans",
+    ) -> Tuple[pd.Series, Dict[int, CustomerSegment]]:
+        """Detailed segmentation returning segment objects.
+
+        This retains the richer output format for internal/advanced use.
+        """
+
+        features = customer_features.select_dtypes(include=[np.number]).fillna(0)
+
+        scaler = StandardScaler()
+        features_scaled = scaler.fit_transform(features)
+        self._scalers["segmentation"] = scaler
+
         if method == "kmeans":
             model = KMeans(
                 n_clusters=self.n_segments,
@@ -134,55 +203,99 @@ class CustomerBehaviorModule:
             labels = model.fit_predict(features_scaled)
         else:
             raise ValueError(f"Unknown method: {method}")
-        
+
         segment_labels = pd.Series(labels, index=customer_features.index)
-        
+
         segments = {}
         for segment_id in np.unique(labels):
             if segment_id == -1:
                 continue
-            
+
             mask = labels == segment_id
-            segment_data = customer_features[mask]
             segment_features = features[mask]
-            
-            characteristics = {}
+
+            characteristics: dict[str, Any] = {}
             for col in segment_features.columns:
                 characteristics[col] = {
                     "mean": float(segment_features[col].mean()),
                     "median": float(segment_features[col].median()),
                     "std": float(segment_features[col].std()),
                 }
-            
+
             avg_ltv = characteristics.get("ltv", {}).get("mean", 0)
             churn_risk = characteristics.get("churn_score", {}).get("mean", 0.5)
-            
+
             segments[int(segment_id)] = CustomerSegment(
                 id=int(segment_id),
-                name=self._generate_segment_name(segment_id, characteristics),
+                name=self._generate_segment_name(int(segment_id), characteristics),
                 size=int(mask.sum()),
                 characteristics=characteristics,
                 avg_ltv=float(avg_ltv),
                 churn_risk=float(churn_risk),
             )
-        
+
         self._segments = segments
-        
+
         return segment_labels, segments
     
-    def predict_churn(
+    def predict_churn(self, customer_features: pd.DataFrame) -> ChurnPredictionResult:
+        """Predict churn probabilities (simplified, no training required).
+
+        The more detailed, model-based implementation is available via
+        `predict_churn_detailed()`.
+        """
+
+        if customer_features.empty:
+            return ChurnPredictionResult(churn_probabilities=[])
+
+        df = customer_features.copy()
+
+        def _series(col: str, default: float) -> pd.Series:
+            if col in df.columns:
+                return pd.to_numeric(df[col], errors="coerce").fillna(default)
+            return pd.Series([default] * len(df), index=df.index, dtype=float)
+
+        recency = _series("recency_days", float(self.churn_threshold_days))
+        frequency = _series("frequency", 1.0)
+        spend = _series("total_spend", 0.0)
+        engagement = _series("engagement_score", 0.5)
+
+        def _minmax(s: pd.Series) -> pd.Series:
+            lo = float(s.min())
+            hi = float(s.max())
+            if hi - lo < 1e-9:
+                return pd.Series([0.5] * len(s), index=s.index, dtype=float)
+            return (s - lo) / (hi - lo)
+
+        recency_n = _minmax(recency)
+        freq_n = _minmax(frequency)
+        spend_n = _minmax(spend)
+        engagement_n = _minmax(engagement)
+
+        prob = (
+            0.55 * recency_n
+            + 0.20 * (1.0 - freq_n)
+            + 0.15 * (1.0 - spend_n)
+            + 0.10 * (1.0 - engagement_n)
+        )
+
+        prob = prob.clip(lower=0.0, upper=1.0)
+
+        return ChurnPredictionResult(churn_probabilities=[float(x) for x in prob.tolist()])
+
+    def predict_churn_detailed(
         self,
         customer_features: pd.DataFrame,
         train: bool = False,
         labels: Optional[pd.Series] = None,
     ) -> List[ChurnPrediction]:
         """Predict customer churn probability.
-        
+
         Args:
             customer_features: DataFrame with customer features
             train: Whether to train the model
             labels: True labels for training (required if train=True)
-            
+
         Returns:
             List of ChurnPrediction objects
         """

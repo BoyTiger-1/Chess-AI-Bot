@@ -1,0 +1,42 @@
+{{- if .Values.services.worker.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "worker") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "worker" "root" .) | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.worker.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "baa.componentLabels" (dict "component" "worker" "root" .) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "baa.componentLabels" (dict "component" "worker" "root" .) | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "baa.fullname" . }}
+      containers:
+        - name: worker
+          image: "{{ .Values.services.worker.image.repository }}:{{ .Values.services.worker.image.tag }}"
+          imagePullPolicy: {{ .Values.services.worker.image.pullPolicy }}
+          args:
+            - celery
+            - -A
+            - ai_business_assistant.worker.celery_app
+            - worker
+            - --loglevel={{ .Values.common.logLevel }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "baa.fullname" . }}
+            - secretRef:
+                name: {{ include "baa.fullname" . }}
+          resources:
+            {{- toYaml .Values.services.worker.resources | nindent 12 }}
+        {{- if .Values.observability.sidecar.enabled }}
+        - name: observability-sidecar
+          image: {{ .Values.observability.sidecar.image | quote }}
+          resources:
+            {{- toYaml .Values.observability.sidecar.resources | nindent 12 }}
+        {{- end }}
+{{- end }}

@@ -1,0 +1,50 @@
+{{- if .Values.services.gateway.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "gateway") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "gateway" "root" .) | nindent 4 }}
+spec:
+  type: {{ .Values.services.gateway.service.type }}
+  selector:
+    {{- include "baa.componentLabels" (dict "component" "gateway" "root" .) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.services.gateway.service.port }}
+      targetPort: http
+---
+{{- end }}
+{{- if .Values.services.auth.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "auth") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "auth" "root" .) | nindent 4 }}
+spec:
+  type: {{ .Values.services.auth.service.type }}
+  selector:
+    {{- include "baa.componentLabels" (dict "component" "auth" "root" .) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.services.auth.service.port }}
+      targetPort: http
+---
+{{- end }}
+{{- if .Values.services.assistant.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "assistant") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "assistant" "root" .) | nindent 4 }}
+spec:
+  type: {{ .Values.services.assistant.service.type }}
+  selector:
+    {{- include "baa.componentLabels" (dict "component" "assistant" "root" .) | nindent 4 }}
+  ports:
+    - name: http
+      port: {{ .Values.services.assistant.service.port }}
+      targetPort: http
+{{- end }}
