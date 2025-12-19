@@ -1,0 +1,28 @@
+{{- if and .Values.services.gateway.enabled .Values.services.gateway.autoscaling.hpa.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "gateway") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "gateway" "root" .) | nindent 4 }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "baa.serviceName" (dict "root" . "component" "gateway") }}
+  minReplicas: {{ .Values.services.gateway.autoscaling.hpa.minReplicas }}
+  maxReplicas: {{ .Values.services.gateway.autoscaling.hpa.maxReplicas }}
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.gateway.autoscaling.hpa.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.services.gateway.autoscaling.hpa.targetMemoryUtilizationPercentage }}
+{{- end }}

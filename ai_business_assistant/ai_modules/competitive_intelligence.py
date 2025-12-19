@@ -64,37 +64,89 @@ class MarketPositioningResult:
 
 class CompetitiveIntelligenceModule:
     """Competitive intelligence analysis for strategic decision-making.
-    
+
     Assumptions:
     - Competitor data is up-to-date and accurate
     - Market share data sums to <= 1.0
     - Pricing data is in consistent currency
     - Feature comparisons use standardized feature names
-    
+
     Limitations:
     - Analysis quality depends on data completeness
     - Market positioning is 2D simplification of complex space
     - Competitor strategies may change rapidly
     - Missing data is imputed with median values
     """
-    
+
     def __init__(self, our_company_id: str = "us"):
         """Initialize the competitive intelligence module.
-        
+
         Args:
             our_company_id: Identifier for our company
         """
         self.our_company_id = our_company_id
         self._competitors: Dict[str, Competitor] = {}
         self._market_data: Dict[str, Any] = {}
-    
+
     def add_competitor(self, competitor: Competitor) -> None:
         """Add or update competitor information.
-        
+
         Args:
             competitor: Competitor object to add
         """
         self._competitors[competitor.id] = competitor
+
+    def analyze_competitive_positioning(self, competitors_data: pd.DataFrame) -> Dict[str, Any]:
+        """Legacy-friendly helper used by the simplified test suite.
+
+        Expected input columns (case-insensitive):
+        - name
+        - market_share (0..1)
+        - price_index (relative price level)
+        - quality_score
+
+        Returns:
+            A dict containing a simple 2D positioning matrix and per-competitor profiles.
+        """
+
+        if competitors_data.empty:
+            return {"positioning_matrix": [], "competitor_profiles": []}
+
+        df = competitors_data.copy()
+        df.columns = [str(c).lower() for c in df.columns]
+
+        required = {"name", "market_share", "price_index", "quality_score"}
+        missing = required - set(df.columns)
+        if missing:
+            raise ValueError(f"Missing required columns: {sorted(missing)}")
+
+        profiles: list[dict[str, Any]] = []
+        matrix: list[dict[str, Any]] = []
+
+        for _, row in df.iterrows():
+            name = str(row["name"])
+            market_share = float(row["market_share"])
+            price_index = float(row["price_index"])
+            quality_score = float(row["quality_score"])
+
+            profiles.append(
+                {
+                    "name": name,
+                    "market_share": market_share,
+                    "price_index": price_index,
+                    "quality_score": quality_score,
+                }
+            )
+            matrix.append(
+                {
+                    "name": name,
+                    "x": price_index,
+                    "y": quality_score,
+                    "bubble": max(market_share, 0.0),
+                }
+            )
+
+        return {"positioning_matrix": matrix, "competitor_profiles": profiles}
     
     def analyze_pricing(
         self,

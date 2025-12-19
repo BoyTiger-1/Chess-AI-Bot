@@ -14,12 +14,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy requirements
-COPY requirements.txt ai_business_assistant/requirements.txt ./
+COPY requirements.txt ./requirements.txt
+COPY ai_business_assistant/requirements.txt ./ai_business_assistant/requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt && \
-    pip install --no-cache-dir -r ai_business_assistant/requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
 # Stage 2: Runtime
 FROM python:3.11-slim

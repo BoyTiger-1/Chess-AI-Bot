@@ -1,0 +1,23 @@
+common:
+  logLevel: DEBUG
+
+services:
+  gateway:
+    replicaCount: 1
+    autoscaling:
+      hpa:
+        enabled: false
+  auth:
+    replicaCount: 1
+  assistant:
+    replicaCount: 1
+  worker:
+    replicaCount: 1
+
+ingress:
+  enabled: true
+  hosts:
+    - host: business-ai-dev.local
+      paths:
+        - path: /
+          pathType: Prefix

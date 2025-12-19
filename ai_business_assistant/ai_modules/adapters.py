@@ -11,7 +11,7 @@ from ai_business_assistant.ai_modules.market_analysis import MarketAnalysisModul
 from ai_business_assistant.ai_modules.forecasting import FinancialForecastingModule
 from ai_business_assistant.ai_modules.competitive_intelligence import CompetitiveIntelligenceModule
 from ai_business_assistant.ai_modules.customer_behavior import CustomerBehaviorModule
-from ai_business_assistant.ai_modules.recommendation_engine import RecommendationEngineModule
+from ai_business_assistant.ai_modules.recommendation_engine import RecommendationEngine as RecommendationEngineCore
 
 
 class MarketAnalyzer:
@@ -269,10 +269,10 @@ class CustomerAnalyzer:
 
 
 class RecommendationEngine:
-    """Async wrapper for RecommendationEngineModule."""
-    
+    """Async wrapper for the core recommendation engine."""
+
     def __init__(self):
-        self.module = RecommendationEngineModule()
+        self.module = RecommendationEngineCore()
     
     async def generate_recommendations(self, category: Optional[str], priority: Optional[str], limit: int, db):
         """Generate recommendations."""

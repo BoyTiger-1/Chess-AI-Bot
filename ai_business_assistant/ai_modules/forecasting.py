@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from prophet import Prophet
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.preprocessing import StandardScaler
@@ -107,10 +106,10 @@ class ForecastingModule:
                     enforce_stationarity=False,
                     enforce_invertibility=False,
                 )
+                fitted_model = model.fit(disp=False)
             else:
                 model = ARIMA(ts_clean, order=order)
-            
-            fitted_model = model.fit(disp=False)
+                fitted_model = model.fit()
             
             forecast = fitted_model.forecast(steps=periods)
             forecast_obj = fitted_model.get_forecast(steps=periods)
@@ -176,6 +175,11 @@ class ForecastingModule:
         }).dropna()
         
         try:
+            try:
+                from prophet import Prophet  # type: ignore
+            except Exception as e:  # noqa: BLE001
+                return self._fallback_forecast(time_series, periods, f"Prophet unavailable: {e}")
+
             model = Prophet(
                 seasonality_mode=seasonality_mode,
                 interval_width=self.confidence_level,
@@ -183,7 +187,7 @@ class ForecastingModule:
                 weekly_seasonality=True,
                 yearly_seasonality=True,
             )
-            
+
             model.fit(df)
             
             future = model.make_future_dataframe(periods=periods, freq="D")
@@ -373,7 +377,7 @@ class ForecastingModule:
                     continue
                 try:
                     model = ARIMA(time_series, order=(p, d, q))
-                    fitted = model.fit(disp=False)
+                    fitted = model.fit()
                     if fitted.aic < best_aic:
                         best_aic = fitted.aic
                         best_order = (p, d, q)
@@ -384,14 +388,14 @@ class ForecastingModule:
     
     def _determine_differencing_order(self, time_series: pd.Series) -> int:
         """Determine the order of differencing needed for stationarity."""
-        result = adfuller(time_series.dropna())
+        result = adfuller(time_series.dropna(), autolag="AIC")
         p_value = result[1]
         
         if p_value < 0.05:
             return 0
         
         diff_series = time_series.diff().dropna()
-        result = adfuller(diff_series)
+        result = adfuller(diff_series, autolag="AIC")
         p_value = result[1]
         
         if p_value < 0.05:
@@ -449,3 +453,45 @@ class ForecastingModule:
             model_type=f"Fallback_MA ({reason})",
             metrics={"rmse": float(std_value)},
         )
+
+
+@dataclass
+class LegacyForecastResult:
+    """Legacy wrapper used by the simplified test suite."""
+
+    forecast: List[float]
+    confidence_intervals: List[Dict[str, float]]
+    model_type: str
+
+
+class FinancialForecastingModule:
+    """Compatibility wrapper around ForecastingModule.
+
+    The repository contains both an "advanced" series-based ForecastingModule and a
+    simplified DataFrame-based interface referenced by a legacy test.
+    """
+
+    def __init__(self, *, confidence_level: float = 0.95, max_forecast_horizon: int = 90):
+        self._inner = ForecastingModule(confidence_level=confidence_level, max_forecast_horizon=max_forecast_horizon)
+
+    def forecast_arima(self, data: pd.DataFrame, *, periods: int = 10) -> LegacyForecastResult:
+        if data.empty:
+            return LegacyForecastResult(forecast=[], confidence_intervals=[], model_type="arima")
+
+        if not {"ds", "y"}.issubset(set(data.columns)):
+            raise ValueError("Expected DataFrame with columns: ds, y")
+
+        df = data.copy()
+        df["ds"] = pd.to_datetime(df["ds"], errors="coerce")
+        df = df.dropna(subset=["ds", "y"]).sort_values("ds")
+
+        ts = pd.Series(pd.to_numeric(df["y"], errors="coerce").values, index=pd.to_datetime(df["ds"]))
+        result = self._inner.forecast_arima(ts, periods=periods)
+
+        forecast = [float(x) for x in result.forecast.values.tolist()]
+        ci = [
+            {"lower": float(l), "upper": float(u)}
+            for l, u in zip(result.lower_bound.values.tolist(), result.upper_bound.values.tolist())
+        ]
+
+        return LegacyForecastResult(forecast=forecast, confidence_intervals=ci, model_type="arima")

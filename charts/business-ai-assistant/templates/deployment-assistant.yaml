@@ -1,0 +1,78 @@
+{{- if .Values.services.assistant.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "baa.serviceName" (dict "root" . "component" "assistant") }}
+  labels:
+    {{- include "baa.componentLabels" (dict "component" "assistant" "root" .) | nindent 4 }}
+spec:
+  replicas: {{ .Values.services.assistant.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "baa.componentLabels" (dict "component" "assistant" "root" .) | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "baa.componentLabels" (dict "component" "assistant" "root" .) | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "baa.fullname" . }}
+      initContainers:
+        - name: db-init
+          image: "{{ .Values.services.assistant.image.repository }}:{{ .Values.services.assistant.image.tag }}"
+          imagePullPolicy: {{ .Values.services.assistant.image.pullPolicy }}
+          command: ["python", "-c", "import asyncio; from ai_business_assistant.shared.db.init_db import init_db; asyncio.run(init_db())"]
+          envFrom:
+            - configMapRef:
+                name: {{ include "baa.fullname" . }}
+            - secretRef:
+                name: {{ include "baa.fullname" . }}
+      containers:
+        - name: assistant
+          image: "{{ .Values.services.assistant.image.repository }}:{{ .Values.services.assistant.image.tag }}"
+          imagePullPolicy: {{ .Values.services.assistant.image.pullPolicy }}
+          args:
+            - uvicorn
+            - ai_business_assistant.assistant_service.main:app
+            - --host
+            - 0.0.0.0
+            - --port
+            - "{{ .Values.services.assistant.service.port }}"
+          ports:
+            - name: http
+              containerPort: {{ .Values.services.assistant.service.port }}
+          envFrom:
+            - configMapRef:
+                name: {{ include "baa.fullname" . }}
+            - secretRef:
+                name: {{ include "baa.fullname" . }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 2
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            failureThreshold: 30
+            periodSeconds: 2
+          resources:
+            {{- toYaml .Values.services.assistant.resources | nindent 12 }}
+        {{- if .Values.observability.sidecar.enabled }}
+        - name: observability-sidecar
+          image: {{ .Values.observability.sidecar.image | quote }}
+          resources:
+            {{- toYaml .Values.observability.sidecar.resources | nindent 12 }}
+        {{- end }}
+{{- end }}

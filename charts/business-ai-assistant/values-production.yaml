@@ -1,0 +1,29 @@
+common:
+  logLevel: INFO
+
+services:
+  gateway:
+    replicaCount: 3
+    autoscaling:
+      hpa:
+        enabled: true
+        minReplicas: 3
+        maxReplicas: 25
+  auth:
+    replicaCount: 3
+  assistant:
+    replicaCount: 3
+  worker:
+    replicaCount: 2
+
+ingress:
+  enabled: true
+  hosts:
+    - host: business-ai.example.com
+      paths:
+        - path: /
+          pathType: Prefix
+  tls:
+    - secretName: business-ai-tls
+      hosts:
+        - business-ai.example.com
