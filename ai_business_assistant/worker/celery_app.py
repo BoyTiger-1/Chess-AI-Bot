@@ -2,15 +2,15 @@ from __future__ import annotations
 
 from celery import Celery
 
-from ai_business_assistant.shared.config import get_settings
+from ai_business_assistant.config import get_settings
 
 
 settings = get_settings()
 
 celery_app = Celery(
     "ai_business_assistant",
-    broker=settings.rabbitmq_url,
-    backend=settings.celery_result_backend,
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
     include=["ai_business_assistant.worker.tasks"],
 )
 

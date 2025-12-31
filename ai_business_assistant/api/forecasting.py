@@ -5,7 +5,7 @@ Financial forecasting API endpoints.
 from typing import List, Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -63,6 +63,17 @@ async def create_forecast(
     except Exception as e:
         logger.error(f"Forecast creation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/create-async", status_code=status.HTTP_202_ACCEPTED)
+async def create_forecast_async(
+    request: ForecastRequest,
+    current_user: User = Depends(get_current_user)
+):
+    """Create a new financial forecast asynchronously."""
+    from ai_business_assistant.worker.tasks import generate_forecast
+    task = generate_forecast.delay(request.dict())
+    return {"task_id": task.id, "status": "pending"}
 
 
 @router.get("/{forecast_id}")
