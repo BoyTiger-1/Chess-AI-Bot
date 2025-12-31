@@ -5,7 +5,7 @@ Market analysis API endpoints.
 from typing import List, Optional
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -76,6 +76,17 @@ async def analyze_market(
     except Exception as e:
         logger.error(f"Market analysis failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/analyze-batch", status_code=status.HTTP_202_ACCEPTED)
+async def analyze_market_batch(
+    symbols: List[str],
+    current_user: User = Depends(get_current_user)
+):
+    """Start batch market analysis asynchronously."""
+    from ai_business_assistant.worker.tasks import batch_market_analysis
+    task = batch_market_analysis.delay(symbols)
+    return {"task_id": task.id, "status": "pending"}
 
 
 @router.get("/sentiment/{symbol}", response_model=SentimentAnalysisResponse)

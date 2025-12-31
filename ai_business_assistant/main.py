@@ -23,8 +23,17 @@ from ai_business_assistant.shared.redis_cache import init_redis, close_redis
 from ai_business_assistant.shared.logging import get_logger, setup_logging
 from ai_business_assistant.api.routes import market_router, forecasting_router, \
     competitive_router, customer_router, recommendations_router, \
-    auth_router, data_router, export_router, webhooks_router
+    auth_router, data_router, export_router, webhooks_router, task_router, features_router, model_registry_router, experimentation_router, data_quality_router, audit_router
 from ai_business_assistant.api.graphql_app import graphql_app
+from ai_business_assistant.models.loader import ModelLoader
+
+# OpenTelemetry
+from opentelemetry import trace
+from opentelemetry.sdk.resources import Resource
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 
 # Initialize logging
 setup_logging()
@@ -49,6 +58,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Initialize Redis
     await init_redis()
     logger.info("Redis cache initialized")
+    
+    # Initialize Tracing
+    if settings.ENABLE_TRACING:
+        resource = Resource.create({"service.name": settings.APP_NAME})
+        provider = TracerProvider(resource=resource)
+        processor = BatchSpanProcessor(OTLPSpanExporter(endpoint="http://jaeger:4317"))
+        provider.add_span_processor(processor)
+        trace.set_tracer_provider(provider)
+        FastAPIInstrumentor.instrument_app(app)
+        logger.info("OpenTelemetry tracing initialized")
+    
+    # Load ML models
+    await ModelLoader.load_all()
+    logger.info("ML models loaded")
     
     yield
     
@@ -203,6 +226,12 @@ app.include_router(recommendations_router, prefix="/api/v1/recommendations", tag
 app.include_router(data_router, prefix="/api/v1/data", tags=["Data Management"])
 app.include_router(export_router, prefix="/api/v1/export", tags=["Data Export"])
 app.include_router(webhooks_router, prefix="/api/v1/webhooks", tags=["Webhooks"])
+app.include_router(task_router, prefix="/api/v1/tasks", tags=["Task Management"])
+app.include_router(features_router, prefix="/api/v1/features", tags=["Feature Store"])
+app.include_router(model_registry_router, prefix="/api/v1/models", tags=["Model Registry"])
+app.include_router(experimentation_router, prefix="/api/v1/experiments", tags=["A/B Testing"])
+app.include_router(data_quality_router, prefix="/api/v1/data-quality", tags=["Data Quality"])
+app.include_router(audit_router, prefix="/api/v1/audit", tags=["Audit Log"])
 
 # Mount GraphQL
 app.mount("/api/v1/graphql", graphql_app)

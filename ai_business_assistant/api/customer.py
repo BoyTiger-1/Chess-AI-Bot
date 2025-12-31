@@ -4,7 +4,7 @@ Customer behavior and analytics API endpoints.
 
 from typing import List, Optional
 
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -47,6 +47,17 @@ async def get_customer_segments(
     except Exception as e:
         logger.error(f"Customer segmentation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/segment-async", status_code=status.HTTP_202_ACCEPTED)
+async def segment_customers_async(
+    current_user: User = Depends(get_current_user)
+):
+    """Start customer segmentation analysis asynchronously."""
+    from ai_business_assistant.worker.tasks import customer_segmentation
+    # In a real app, we'd fetch data from DB first
+    task = customer_segmentation.delay([])
+    return {"task_id": task.id, "status": "pending"}
 
 
 @router.get("/{customer_id}/churn", response_model=ChurnPredictionResponse)
