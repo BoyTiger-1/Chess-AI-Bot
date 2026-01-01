@@ -210,6 +210,8 @@ __marimo__/
 *.pkl
 *.csv
 /data/
+/models/
+/models/cache/
 
 # Frontend (React/Vite)
 /frontend/node_modules/

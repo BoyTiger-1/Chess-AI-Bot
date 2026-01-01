@@ -23,6 +23,8 @@ from scipy import stats
 from scipy.signal import find_peaks
 from textblob import TextBlob
 
+from ai_business_assistant.shared.model_cache import get_model_cache
+
 try:  # Optional dependency
     import torch
 
@@ -93,14 +95,20 @@ class MarketAnalysisModule:
         self._sentiment_pipeline = None
 
         if self._transformer_enabled:
-            device = -1
-            if torch is not None and torch.cuda.is_available():
-                device = 0
-            self._sentiment_pipeline = pipeline(
-                "sentiment-analysis",
-                model=sentiment_model,
-                device=device,
-            )
+            cache = get_model_cache()
+            cache_key = f"pipeline_sentiment_{sentiment_model}"
+            self._sentiment_pipeline = cache.get_model(cache_key)
+
+            if self._sentiment_pipeline is None:
+                device = -1
+                if torch is not None and torch.cuda.is_available():
+                    device = 0
+                self._sentiment_pipeline = pipeline(
+                    "sentiment-analysis",
+                    model=sentiment_model,
+                    device=device,
+                )
+                cache.set_model(cache_key, self._sentiment_pipeline)
 
     @overload
     def analyze_sentiment(self, texts: str, timestamps: None = None) -> SentimentResult: ...
