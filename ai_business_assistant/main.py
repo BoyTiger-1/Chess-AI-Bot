@@ -21,6 +21,7 @@ from ai_business_assistant.config import get_settings
 from ai_business_assistant.shared.database import init_db, close_db
 from ai_business_assistant.shared.redis_cache import init_redis, close_redis
 from ai_business_assistant.shared.logging import get_logger, setup_logging
+from ai_business_assistant.shared.model_cache import get_model_cache
 from ai_business_assistant.api.routes import market_router, forecasting_router, \
     competitive_router, customer_router, recommendations_router, \
     auth_router, data_router, export_router, webhooks_router
@@ -49,6 +50,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
     # Initialize Redis
     await init_redis()
     logger.info("Redis cache initialized")
+    
+    # Pre-cache ML models
+    model_cache = get_model_cache()
+    await model_cache.load_all()
     
     yield
     
