@@ -78,6 +78,30 @@ async def analyze_market(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class MarketBatchAnalysisRequest(BaseModel):
+    symbols: List[str]
+    webhook_url: Optional[str] = None
+
+
+@router.post("/analyze-batch")
+async def analyze_market_batch_async(
+    request: MarketBatchAnalysisRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Start an asynchronous batch market analysis job."""
+    try:
+        from ai_business_assistant.worker.celery_app import celery_app
+        task = celery_app.send_task(
+            "ai_business_assistant.worker.tasks.batch_market_analysis",
+            args=[request.symbols],
+            kwargs={"webhook_url": request.webhook_url}
+        )
+        return {"task_id": task.id, "status": "PENDING"}
+    except Exception as e:
+        logger.error(f"Async batch market analysis failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/sentiment/{symbol}", response_model=SentimentAnalysisResponse)
 async def get_sentiment(
     symbol: str,
