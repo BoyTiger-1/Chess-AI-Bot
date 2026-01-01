@@ -24,7 +24,7 @@ from ai_business_assistant.shared.logging import get_logger, setup_logging
 from ai_business_assistant.shared.model_cache import get_model_cache
 from ai_business_assistant.api.routes import market_router, forecasting_router, \
     competitive_router, customer_router, recommendations_router, \
-    auth_router, data_router, export_router, webhooks_router
+    auth_router, data_router, export_router, webhooks_router, tasks_router
 from ai_business_assistant.api.graphql_app import graphql_app
 
 # Initialize logging
@@ -208,6 +208,7 @@ app.include_router(recommendations_router, prefix="/api/v1/recommendations", tag
 app.include_router(data_router, prefix="/api/v1/data", tags=["Data Management"])
 app.include_router(export_router, prefix="/api/v1/export", tags=["Data Export"])
 app.include_router(webhooks_router, prefix="/api/v1/webhooks", tags=["Webhooks"])
+app.include_router(tasks_router, prefix="/api/v1/tasks", tags=["Task Monitoring"])
 
 # Mount GraphQL
 app.mount("/api/v1/graphql", graphql_app)

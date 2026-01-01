@@ -25,6 +25,7 @@ class ForecastRequest(BaseModel):
     periods: int
     model_type: Optional[str] = "prophet"
     historical_data: Optional[List[dict]] = None
+    webhook_url: Optional[str] = None
 
 
 class ForecastResponse(BaseModel):
@@ -62,6 +63,25 @@ async def create_forecast(
         
     except Exception as e:
         logger.error(f"Forecast creation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/create-async")
+async def create_forecast_async(
+    request: ForecastRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Start an asynchronous forecast generation job."""
+    try:
+        from ai_business_assistant.worker.celery_app import celery_app
+        task = celery_app.send_task(
+            "ai_business_assistant.worker.tasks.generate_forecast",
+            args=[request.periods],
+            kwargs={"webhook_url": request.webhook_url}
+        )
+        return {"task_id": task.id, "status": "PENDING"}
+    except Exception as e:
+        logger.error(f"Async forecast creation failed: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 

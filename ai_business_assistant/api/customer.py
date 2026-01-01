@@ -49,6 +49,30 @@ async def get_customer_segments(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+class CustomerSegmentationRequest(BaseModel):
+    dataset_id: str
+    webhook_url: Optional[str] = None
+
+
+@router.post("/segment-async")
+async def segment_customers_async(
+    request: CustomerSegmentationRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Start an asynchronous customer segmentation job."""
+    try:
+        from ai_business_assistant.worker.celery_app import celery_app
+        task = celery_app.send_task(
+            "ai_business_assistant.worker.tasks.segment_customers",
+            args=[request.dataset_id],
+            kwargs={"webhook_url": request.webhook_url}
+        )
+        return {"task_id": task.id, "status": "PENDING"}
+    except Exception as e:
+        logger.error(f"Async customer segmentation failed: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @router.get("/{customer_id}/churn", response_model=ChurnPredictionResponse)
 async def predict_churn(
     customer_id: int,

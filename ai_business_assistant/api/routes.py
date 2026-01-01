@@ -11,6 +11,7 @@ from ai_business_assistant.api.recommendations import router as recommendations_
 from ai_business_assistant.api.data import router as data_router
 from ai_business_assistant.api.export import router as export_router
 from ai_business_assistant.api.webhooks import router as webhooks_router
+from ai_business_assistant.api.tasks import router as tasks_router
 
 __all__ = [
     "auth_router",
@@ -22,4 +23,5 @@ __all__ = [
     "data_router",
     "export_router",
     "webhooks_router",
+    "tasks_router",
 ]
