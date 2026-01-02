@@ -1,10 +1,62 @@
+# Version control
 .git
+.github
+
+# Python virtual environments
 .venv
+venv
+env
+ENV/
+
+# Python cache
 __pycache__
 *.pyc
 *.pyo
 *.pyd
+.Python
+*.so
+*.egg-info/
+dist/
+build/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Data files
 *.pkl
-games.csv.gz
-chess-pieces
-templates
+*.csv.gz
+data/
+models/cache/
+
+# Documentation
+docs/_build/
+*.md
+!README.md
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Frontend build artifacts (if building frontend in container)
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
